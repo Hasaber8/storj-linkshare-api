@@ -28,7 +28,7 @@ def share_link(bucket_name, device, build, expire_time):
     output = run_command('bin/uplink_linux_amd64 --config-dir config/ share sj://{0}/{1}/{2} --url --not-after +{3}'.format(bucket_name, device, build, expire_time))
     urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', output)
     for url in urls:
-        url = url.replace('\n', '').replace('\\', '')
+        url = url.replace('\\n', '').replace('\\', '')
         if build in url:
             if is_link_valid(url):
                 return url
