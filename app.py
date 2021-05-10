@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from shell_utils import run_command
+from requests import head
 import os
 import re
 import logging
@@ -15,12 +16,21 @@ def file_exists(bucket_name, device, build, build_size):
     cmp = "{0} {1}/{2}".format(build_size, device, build)
     return cmp in output
 
+def is_link_valid(url):
+    response = head(url, timeout=15)
+    status_code = response.status_code
+    if status_code != 200:
+        app.logger.error('Linkshare url ' + url + ' return status: ' + str(status_code))
+        return False
+    return True
+
 def share_link(bucket_name, device, build, expire_time):
     output = run_command('bin/uplink_linux_amd64 --config-dir config/ share sj://{0}/{1}/{2} --url --not-after +{3}'.format(bucket_name, device, build, expire_time))
     urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', output)
     for url in urls:
         if build in url:
-            return url.replace("\\n", "")
+            if is_link_valid(url):
+                return url.replace("\\n", "")
     app.logger.error('Unable to find linkshare url in output: ' + output)
     return False
 
