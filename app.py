@@ -30,7 +30,7 @@ def share_link(bucket_name, device, build, expire_time):
     for url in urls:
         if build in url:
             if is_link_valid(url):
-                return url.replace("\\n", "")
+                return url.replace('\n', '').replace('\\', '')
     app.logger.error('Unable to find linkshare url in output: ' + output)
     return False
 
