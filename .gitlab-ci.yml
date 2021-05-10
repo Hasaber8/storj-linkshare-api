@@ -1,0 +1,10 @@
+docker-build:
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin gitlab.pixelexperience.org:5050
+  script:
+    - docker build --pull . -t gitlab.pixelexperience.org:5050/infra/docker/storj-linkshare-api:latest
+    - docker push gitlab.pixelexperience.org:5050/infra/docker/storj-linkshare-api:latest
