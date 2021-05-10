@@ -9,7 +9,7 @@ app = Flask(__name__)
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 API_TOKEN = os.getenv("API_TOKEN")
 REQUIRED_ARGS = ["device", "build", "build_size", "api_token"]
-EXPIRE_TIME = "5m"
+EXPIRE_TIME = "6h"
 
 def file_exists(bucket_name, device, build, build_size):
     output = run_command('bin/uplink_linux_amd64 --config-dir config/ ls sj://{0}/{1}/{2}'.format(bucket_name, device, build))
