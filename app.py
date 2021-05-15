@@ -1,15 +1,26 @@
 from flask import Flask, jsonify, request
+from requests.api import get
 from shell_utils import run_command
 from requests import head
 import os
 import re
 import logging
+from pycountry_convert import country_alpha2_to_continent_code
 
 app = Flask(__name__)
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 API_TOKEN = os.getenv("API_TOKEN")
-REQUIRED_ARGS = ["device", "build", "build_size", "api_token"]
+REQUIRED_ARGS = ["device", "build", "build_size", "api_token", "country"]
 EXPIRE_TIME = "6h"
+DEFAULT_MIRROR = "NA"
+STORJ_MIRRORS = {
+    "AS": "link.ap1.storjshare.io",
+    "AF": "link.ap1.storjshare.io",
+    "OC": "link.ap1.storjshare.io",
+    "EU": "link.eu1.storjshare.io",
+    "NA": "link.us1.storjshare.io",
+    "SA": "link.us1.storjshare.io"
+}
 
 def file_exists(bucket_name, device, build, build_size):
     output = run_command('bin/uplink_linux_amd64 --config-dir config/ ls sj://{0}/{1}/{2}'.format(bucket_name, device, build))
@@ -24,12 +35,20 @@ def is_link_valid(url):
         return False
     return True
 
-def share_link(bucket_name, device, build, expire_time):
+def get_closest_mirror(country):
+    try:
+        continent_code = country_alpha2_to_continent_code(country)
+        return STORJ_MIRRORS[continent_code]
+    except:
+        return STORJ_MIRRORS[DEFAULT_MIRROR]
+
+def share_link(bucket_name, device, build, expire_time, country):
     output = run_command('bin/uplink_linux_amd64 --config-dir config/ share sj://{0}/{1}/{2} --url --not-after +{3}'.format(bucket_name, device, build, expire_time))
     urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', output)
     for url in urls:
         url = url.replace('\\n', '').replace('\\', '')
         if build in url:
+            url = url.replace("link.us1.storjshare.io", get_closest_mirror(country))
             if is_link_valid(url):
                 return url
     app.logger.error('Unable to find linkshare url in output: ' + output)
@@ -45,10 +64,11 @@ def index():
     build = args["build"]
     build_size = args["build_size"]
     api_token = args["api_token"]
+    country = args["country"]
     if api_token != API_TOKEN:
         return jsonify(success=False, msg='Invalid token')
     if file_exists(BUCKET_NAME, device, build, build_size):
-        url = share_link(BUCKET_NAME, device, build, EXPIRE_TIME)
+        url = share_link(BUCKET_NAME, device, build, EXPIRE_TIME, country)
         if not url:
             return jsonify(success=False, msg='Failed to generate linkshare url')
         return jsonify(success=True, url=url)
