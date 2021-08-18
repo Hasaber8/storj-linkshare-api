@@ -7,12 +7,16 @@ import re
 import logging
 from pycountry_convert import country_alpha2_to_continent_code
 
+# This part is PixelExperience Specific but can be used as an example for other wanting to implement their stuff in Python + PhP.
+
 app = Flask(__name__)
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 API_TOKEN = os.getenv("API_TOKEN")
 REQUIRED_ARGS = ["device", "build", "build_size", "api_token", "country"]
-EXPIRE_TIME = "6h"
+EXPIRE_TIME = "6h" # This creates a new link for each file every 6 hours, it is done to prevent deeplinking.
 DEFAULT_MIRROR = "NA"
+
+# As of now Storj doesnt automatically connects to the nearest Storage node so we have to do it manually.
 STORJ_MIRRORS = {
     "AS": "link.ap1.storjshare.io",
     "AF": "link.ap1.storjshare.io",
@@ -22,11 +26,13 @@ STORJ_MIRRORS = {
     "SA": "link.us1.storjshare.io"
 }
 
+# This fuction basically check if the bucket and file exist.
 def file_exists(bucket_name, device, build, build_size):
     output = run_command('bin/uplink_linux_amd64 --config-dir config/ ls sj://{0}/{1}/{2}'.format(bucket_name, device, build))
     cmp = "{0} {1}/{2}".format(build_size, device, build)
     return cmp in output
 
+# This validates the URL.
 def is_link_valid(url):
     response = head(url, timeout=15)
     status_code = response.status_code
@@ -35,6 +41,7 @@ def is_link_valid(url):
         return False
     return True
 
+# The next two fuctions connects the user to the closest node and give them the valid url.
 def get_closest_mirror(country):
     try:
         continent_code = country_alpha2_to_continent_code(country)
